@@ -98,6 +98,12 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/books', async (req, res) => {
+            const query = {}
+            const books = await booksCollection.find(query).toArray()
+            res.send(books)
+        })
+
         // users api
         app.post('/users', async (req, res) => {
             const user = req.body
