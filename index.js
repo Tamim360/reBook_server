@@ -34,7 +34,7 @@ const verifyJWT = (req, res, next) => {
     // console.log(token);
     jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
         if (err) {
-            return res.status(403).send('Forbidden')
+            return res.status(403).send('Forbidden access')
         }
         req.decoded = decoded
         // console.log(decoded);
@@ -46,18 +46,34 @@ const verifyJWT = (req, res, next) => {
 // db function
 async function run() {
     try {
+        // collections
         const usersCollection = client.db('reBook').collection('users');
+        const booksCollection = client.db('reBook').collection('books');
         
-        // verify admin or seller
-        const verifyAdminOrSeller = async(req, res, next) => {
+        // verify admin
+        const verifyAdmin = async(req, res, next) => {
             // check the user trying is admin or not
             const decodedEmail = req.decoded.email
-            const user = await usersCollection.findOne({email: decodedEmail})
-            if ((user.role !== 'admin') || user.role !== 'seller') {
+            const user = await usersCollection.findOne({ email: decodedEmail })
+           
+            if (user?.role !== 'admin') {
                 // not admin ? prevent to make admin others
                 return res.status(401).send('Unauthorized')
             }
-            req.userRole = user?.role
+            next()
+        }
+
+        // verify seller
+        const verifySeller = async(req, res, next) => {
+            // check the user trying is admin or not
+            const decodedEmail = req.decoded.email
+            const user = await usersCollection.findOne({ email: decodedEmail })
+           
+            if (user?.role !== 'seller') {
+                // not admin ? prevent to make admin others
+                return res.status(401).send('Unauthorized')
+            }
+            req.userRole = user.role
             next()
         }
 
@@ -74,6 +90,13 @@ async function run() {
             res.status(403).send({accessToken: ''})
         })
 
+
+        // books api
+        app.post('/books', verifyJWT, verifySeller, async (req, res) => {
+            const book = req.body
+            const result = await booksCollection.insertOne(book)
+            res.send(result)
+        })
 
         // users api
         app.post('/users', async (req, res) => {
