@@ -48,15 +48,16 @@ async function run() {
     try {
         const usersCollection = client.db('reBook').collection('users');
         
-        // verify admin
-        const verifyAdmin = async(req, res, next) => {
+        // verify admin or seller
+        const verifyAdminOrSeller = async(req, res, next) => {
             // check the user trying is admin or not
             const decodedEmail = req.decoded.email
             const user = await usersCollection.findOne({email: decodedEmail})
-            if (user.role !== 'Admin') {
+            if ((user.role !== 'admin') || user.role !== 'seller') {
                 // not admin ? prevent to make admin others
                 return res.status(401).send('Unauthorized')
             }
+            req.userRole = user?.role
             next()
         }
 
