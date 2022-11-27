@@ -49,6 +49,7 @@ async function run() {
         // collections
         const usersCollection = client.db('reBook').collection('users');
         const booksCollection = client.db('reBook').collection('books');
+        const categoriesCollection = client.db('reBook').collection('categories');
         
         // verify admin
         const verifyAdmin = async(req, res, next) => {
@@ -65,12 +66,12 @@ async function run() {
 
         // verify seller
         const verifySeller = async(req, res, next) => {
-            // check the user trying is admin or not
+            // check the user trying is seller or not
             const decodedEmail = req.decoded.email
             const user = await usersCollection.findOne({ email: decodedEmail })
-           
+            // console.log(user.role);
             if (user?.role !== 'seller') {
-                // not admin ? prevent to make admin others
+                // not seller ? prevent to get books
                 return res.status(401).send('Unauthorized')
             }
             req.userRole = user.role
@@ -91,18 +92,45 @@ async function run() {
         })
 
 
+        // categories
+        app.get('/categories', async (req, res) => {
+            const query = {}
+            const categories = await categoriesCollection.find(query).toArray()
+            res.send(categories)
+        })
+
         // books api
+        // post a book
         app.post('/books', verifyJWT, verifySeller, async (req, res) => {
             const book = req.body
             const result = await booksCollection.insertOne(book)
             res.send(result)
         })
 
-        app.get('/books', async (req, res) => {
-            const query = {}
+        // find all books for specific seller
+        app.get('/books', verifyJWT, verifySeller, async (req, res) => {
+            const email = req.query.email
+            const query = { email: email}
             const books = await booksCollection.find(query).toArray()
             res.send(books)
         })
+
+        // find book under a single category
+        app.get('/books/:categoryName', async (req, res) => {
+            const name = req.params.categoryName
+            const query = {category: name}
+            const books = await booksCollection.find(query).toArray()
+            res.send(books)
+        })
+        
+        // find a single book
+        app.get('/books/book/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const book = await booksCollection.findOne(query)
+            res.send(book)
+        })
+
 
         // users api
         app.post('/users', async (req, res) => {
