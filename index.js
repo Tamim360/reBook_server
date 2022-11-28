@@ -131,6 +131,14 @@ async function run() {
             res.send(book)
         })
 
+        // delete a single book
+        app.delete('/books/:id', verifyJWT, verifySeller, async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await booksCollection.deleteOne(query)
+            res.send(result)
+        })
+
 
         // users api
         app.post('/users', async (req, res) => {
